@@ -1,9 +1,15 @@
+#include <stdio.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
+#include <unistd.h>
 
 #include "parse.h"
+
+static size_t   getSize            (int fd);
 
 static char*    parseBuffer        (int fd, Text* inputText);
 
@@ -22,11 +28,13 @@ int CreateText (int fd, Text* inputText)
 
     inputText->bufferSize = getSize (fd);
 
-    intputText->buffer    = parseBuffer (fd, inputText);
+    inputText->buffer    = parseBuffer (fd, inputText);
 
-    intputText->cmdsCount = countTokens (buffer, '|');
+    inputText->cmdsCount = countTokens (inputText->buffer, '|');
 
-    inputeText->cmds      = getCommands (buffer, inputText->cmdsCount);
+    printf("%s %zu\n", inputText->buffer, inputText->cmdsCount);
+
+    inputText->cmds      = getCommands (inputText->buffer, inputText->cmdsCount);
 
     return 0;
 }
@@ -35,16 +43,16 @@ int DestroyText (Text* inputText)
 {
     assert (inputText);
 
-    bufferSize = 0xDEADDEAD;
-    cmdsCount  = 0xDEADDEAD;
+    inputText->bufferSize = 0xDEADDEAD;
+    inputText->cmdsCount  = 0xDEADDEAD;
 
-    free (buffer);
-    free (cmds);
+    free (inputText->buffer);
+    free (inputText->cmds);
 
     return 0;
 }
 
-size_t getSize (int fd)
+static size_t getSize (int fd)
 {
     struct stat info = {};
 
@@ -95,7 +103,7 @@ static char* parseBuffer (int fd, Text* inputText)
 
     RETURN_ERROR_OR_CONTINUE(numBytesRead != inputText->bufferSize,
                              "Error: number of bytes read isn't correct", NULL,
-                             free (buffer;
+                             free (buffer);
                             );
 
     return buffer;
@@ -110,7 +118,7 @@ static size_t countTokens (char* buffer, char sepSymbol)
 
     size_t count = 0;
 
-    while ((end = strchr (begin, sepSymbol) != NULL)
+    while ((end = strchr (begin, sepSymbol)) != NULL)
     {
         begin = end + 1;
 
@@ -122,7 +130,7 @@ static size_t countTokens (char* buffer, char sepSymbol)
         count++;
     }
 
-    RETURN_ERROR_OR_CONTINUE(count == 0, "Error: no commands");
+    RETURN_ERROR_OR_CONTINUE(count == 0, "Error: no commands", 0);
 
     return count;
 }
@@ -131,6 +139,8 @@ static Command* getCommands (char* buffer, size_t cmdsCount)
 {
     assert (buffer);
 
+    printf ("%s\n", buffer);
+
     Command* cmds = (Command*) calloc (cmdsCount, sizeof(Command));
 
     RETURN_ERROR_OR_CONTINUE(cmds == NULL, "Error, unable to allocate memory", NULL);
@@ -138,10 +148,12 @@ static Command* getCommands (char* buffer, size_t cmdsCount)
     char* cmdBegin = buffer;
     char* cmdEnd   = buffer;
 
-    for (size_t iCmd = 0; i < cmdsCount; iCmd++)
+    size_t iCmd = 0;
+
+    for (; iCmd < cmdsCount - 1; iCmd++)
     {
-        end = strchr (cmdBegin, '|');
-        *end = '\0';
+        cmdEnd = strchr (cmdBegin, '|');
+        *cmdEnd = '\0';
 
         while (isspace (*cmdBegin))
         {
@@ -149,10 +161,18 @@ static Command* getCommands (char* buffer, size_t cmdsCount)
         }
 
         cmds[iCmd].argc = getCommandArgCount (cmdBegin);
-        cmds[iCmd].argv = getCommandArgVal (char* buffer);
+        cmds[iCmd].argv = getCommandArgVal   (cmdBegin, cmds[iCmd].argc);
 
-        cmdBegin = end + 1;
+        cmdBegin = cmdEnd + 1;
     }
+
+    while (isspace(*cmdBegin))
+    {
+        cmdBegin++;
+    }
+
+    cmds[iCmd].argc = getCommandArgCount (cmdBegin);
+    cmds[iCmd].argv = getCommandArgVal   (cmdBegin, cmds[iCmd].argc);
 
     return cmds;
 }
@@ -162,7 +182,7 @@ static size_t getCommandArgCount (char* buffer)
     assert (buffer);
 
     char* begin = buffer;
-    char* end   = buffer:
+    char* end   = buffer;
 
     size_t argc = 0;
 
@@ -197,7 +217,7 @@ static char** getCommandArgVal (char* buffer, size_t argc)
     argv[argc] = NULL;
 
     char* begin = buffer;
-    char* begin = buffer;
+    char* end = buffer;
 
     size_t iArg = 0;
 
@@ -219,7 +239,7 @@ static char** getCommandArgVal (char* buffer, size_t argc)
             begin++;
         }
 
-        if (*being == '\0')
+        if (*begin == '\0')
         {
             break;
         }

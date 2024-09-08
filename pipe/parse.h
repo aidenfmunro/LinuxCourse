@@ -5,7 +5,7 @@
 
 typedef struct
 {
-    char*  argv[];
+    char** argv;
     size_t argc;
 } Command;
 
@@ -14,7 +14,7 @@ typedef struct
     char*  buffer;
     size_t bufferSize;
 
-    struct Command* cmds;
+    Command* cmds;
     size_t          cmdsCount;
 } Text;
 
