@@ -3,23 +3,23 @@
 
 #include <stddef.h>
 
-struct Command
+typedef struct
 {
     char*  argv[];
     size_t argc;
-};
+} Command;
 
-struct Text
+typedef struct
 {
     char*  buffer;
     size_t bufferSize;
 
     struct Command* cmds;
     size_t          cmdsCount;
-};
+} Text;
 
+int CreateText  (int fd, Text* inputText);
 
+int DestroyText (Text* inputText);
 
-
-
-#endif
+#endif // PARSE_H
