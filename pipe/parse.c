@@ -28,13 +28,25 @@ int CreateText (int fd, Text* inputText)
 
     inputText->bufferSize = getSize (fd);
 
-    inputText->buffer    = parseBuffer (fd, inputText);
+    inputText->buffer     = parseBuffer (fd, inputText);
 
-    inputText->cmdsCount = countTokens (inputText->buffer, '|');
+    inputText->cmdsCount  = countTokens (inputText->buffer, '|');
 
-    printf("%s %zu\n", inputText->buffer, inputText->cmdsCount);
+    inputText->cmds       = getCommands (inputText->buffer, inputText->cmdsCount);
 
-    inputText->cmds      = getCommands (inputText->buffer, inputText->cmdsCount);
+    for (size_t iCmd = 0; iCmd < inputText->cmdsCount; iCmd++)
+    {
+        char** argv = inputText->cmds[iCmd].argv;
+        size_t argc = inputText->cmds[iCmd].argc;
+
+        printf("argc: %zu\n", argc);
+        printf("argv:\n");
+
+        for (size_t iArg = 0; iArg < argc; iArg++)
+        {
+            printf ("%s\n", argv[iArg]);
+        }
+    }
 
     return 0;
 }
@@ -42,6 +54,11 @@ int CreateText (int fd, Text* inputText)
 int DestroyText (Text* inputText)
 {
     assert (inputText);
+
+    for (int iCmd = 0; iCmd < inputText->cmdsCount; iCmd++)
+    {
+        free(inputText->cmds[iCmd].argv);
+    }
 
     inputText->bufferSize = 0xDEADDEAD;
     inputText->cmdsCount  = 0xDEADDEAD;
@@ -85,19 +102,19 @@ static char* parseBuffer (int fd, Text* inputText)
                             );
 
     RETURN_ERROR_OR_CONTINUE(inputText->bufferSize == 0,
-                             "Error: file size is zero.\n", NULL
+                             "Error: file size is zero.", NULL
                             );
 
     char* buffer = (char*) calloc (inputText->bufferSize + 1, sizeof(char));
 
     RETURN_ERROR_OR_CONTINUE(buffer == NULL,
-                             "Error: unable to allocate buffer memory.\n", NULL
+                             "Error: unable to allocate buffer memory.", NULL
                             );
 
     ssize_t numBytesRead = read (fd, buffer, inputText->bufferSize);
 
     RETURN_ERROR_OR_CONTINUE(numBytesRead == -1,
-                             "Error: unable to read from file.\n", NULL,
+                             "Error: unable to read from file.", NULL,
                              free (buffer);
                             );
 
@@ -184,7 +201,7 @@ static size_t getCommandArgCount (char* buffer)
     char* begin = buffer;
     char* end   = buffer;
 
-    size_t argc = 0;
+    size_t argc = 1;
 
     while ((end = strchr (begin, ' ')) != NULL)
     {
