@@ -28,44 +28,47 @@ int Pipeline (Text* cmds)
 {
     assert (cmds);
 
-    static int iCmd = -1;
-    int fds[2] = {};
+    int* fd = (int*) calloc ((cmds->cmdsCount - 1) * 2, sizeof(int));
 
-    int err = pipe (fds);
+    RETURN_ERROR_OR_CONTINUE(fd == NULL, "Error, unable to allocate memory", -1);
 
-    RETURN_ERROR_OR_CONTINUE(err == -1, "Error: unable to pipe", errno);
-
-    if (iCmd == cmds->cmdsCount)
+    for (size_t iCmd = 0; iCmd < cmds->cmdsCount - 1; iCmd++)
     {
-        return 0;
+        RETURN_ERROR_OR_CONTINUE(pipe(fd + 2 * iCmd) < 0, "Error: can't create pipe", -1);
     }
 
-    pid_t pid = fork ();
-    RETURN_ERROR_OR_CONTINUE(pid == -1, "Error: unable to fork", -1);
-    // printf ("cur pid: %d\n", pid);
-    // printf ("cur cmd num: %zu\n", curCmdIndex);
-    if (pid == 0)
+    pid_t pid  = 0;
+    int status = 0;
+
+    for (size_t iCmd = 0; iCmd < cmds->cmdsCount; iCmd++)
     {
-        printf ("cur cmd num: %d\n", iCmd);
+        RETURN_ERROR_OR_CONTINUE((pid = fork()) < 0, "Error: unable to fork", -1);
 
-        RETURN_ERROR_OR_CONTINUE(close (fds[1])   == -1, "Error: unable to close file",          -1);
-        RETURN_ERROR_OR_CONTINUE(dup2 (fds[0], 0) == -1, "Error: unable to dup read descritpor", -1);
-        RETURN_ERROR_OR_CONTINUE(pipe (fds)       == -1, "Error: unable to pipe",                -1);
+        if (pid == 0)
+        {
+            if (iCmd != 0)
+            {
+                RETURN_ERROR_OR_CONTINUE(dup2(fd[2 * iCmd - 2], STDIN_FILENO) < 0, "Error: unable to dup", -1);
+            }
 
-        iCmd++;
-        Pipeline (cmds);
+            if (iCmd != cmds->cmdsCount - 1)
+            {
+                RETURN_ERROR_OR_CONTINUE(dup2(fd[2 * iCmd + 1], STDOUT_FILENO) < 0, "Error: unable to dup", -1);
+            }
+
+            for (size_t iFd = 0; iFd < (cmds->cmdsCount - 1) * 2; iFd++)
+            {
+                RETURN_ERROR_OR_CONTINUE(close (fd[iFd]) < 0, "Error: unable to dup", -1);
+            }
+
+            runCmd(cmds, iCmd);
+        }
+
     }
-    else
-    {
-        RETURN_ERROR_OR_CONTINUE(close (fds[0])   == -1, "Error: unable to close file",          -1);
-        RETURN_ERROR_OR_CONTINUE(dup2 (fds[1], 1)   == -1, "Error: unable to dup file",          -1);
 
-        runCmd (cmds, iCmd);
-    }
+    pid_t id = wait(&status);
 
-    int status = -1;
-	waitpid(pid, &status, 0);
-	// printf("Ret code: %d\n", WEXITSTATUS(status));
+    free(fd);
 
     return 0;
 }
@@ -75,10 +78,18 @@ static int runCmd (Text* cmds, size_t curCmdIndex)
     assert (cmds);
 
     char** argv = cmds->cmds[curCmdIndex].argv;
+    size_t argc = cmds->cmds[curCmdIndex].argc;
+
+    for (size_t iArg = 0; iArg < argc; iArg++)
+    {
+        printf ("%s ", argv[iArg]);
+    }
+
+    printf ("\n");
 
     int err = execvp (argv[0], argv);
 
-    RETURN_ERROR_OR_CONTINUE(err == -1, "Error, couldn't exec", errno);
+    RETURN_ERROR_OR_CONTINUE(err == -1, "Error, couldn't exec", -1);
 
     return 0;
 }
