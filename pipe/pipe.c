@@ -28,47 +28,67 @@ int Pipeline (Text* cmds)
 {
     assert (cmds);
 
-    int* fd = (int*) calloc ((cmds->cmdsCount - 1) * 2, sizeof(int));
+    static int iCmd = 0;
+    int fds[2] = {};
 
-    RETURN_ERROR_OR_CONTINUE(fd == NULL, "Error, unable to allocate memory", -1);
-
-    for (size_t iCmd = 0; iCmd < cmds->cmdsCount - 1; iCmd++)
+    if (iCmd == cmds->cmdsCount - 1)
     {
-        RETURN_ERROR_OR_CONTINUE(pipe(fd + 2 * iCmd) < 0, "Error: can't create pipe", -1);
+        printf ("%d\n", getpid());
+        printf ("%zu\n", iCmd);
+
+        // RETURN_ERROR_OR_CONTINUE(dup2 (fds[1], STDOUT_FILENO) == -1, "Error: unable to close file", -1);
+
+        runCmd (cmds, iCmd);
+
+        return 0;
     }
 
-    pid_t pid  = 0;
-    int status = 0;
+    pid_t pid = 0;
 
-    for (size_t iCmd = 0; iCmd < cmds->cmdsCount; iCmd++)
+    int err = pipe (fds);
+    RETURN_ERROR_OR_CONTINUE(err == -1,
+                             "Error: unable to pipe", -1);
+
+    pid = fork ();
+    RETURN_ERROR_OR_CONTINUE(pid == -1,
+                             "Error: unable to fork", -1);
+
+    if (pid == 0) // child
     {
-        RETURN_ERROR_OR_CONTINUE((pid = fork()) < 0, "Error: unable to fork", -1);
+        printf ("child pid: %d\n", getpid());
 
-        if (pid == 0)
+        RETURN_ERROR_OR_CONTINUE(close (fds[1]) == -1,
+                                 "Error: unable to close file", -1);
+
+        RETURN_ERROR_OR_CONTINUE(dup2 (fds[0], STDIN_FILENO) == -1,
+                                 "Error: unbale to dup", -1);
+
+        iCmd++;
+
+        close (fds[0]);
+
+        Pipeline (cmds);
+    }
+    else
+    {
+        printf ("parent pid: %d\n", getpid());
+
+        RETURN_ERROR_OR_CONTINUE(close (fds[0])   == -1,
+                                 "Error: unable to close file", -1);
+
+        if (iCmd != 0)
         {
-            if (iCmd != 0)
-            {
-                RETURN_ERROR_OR_CONTINUE(dup2(fd[2 * iCmd - 2], STDIN_FILENO) < 0, "Error: unable to dup", -1);
-            }
-
-            if (iCmd != cmds->cmdsCount - 1)
-            {
-                RETURN_ERROR_OR_CONTINUE(dup2(fd[2 * iCmd + 1], STDOUT_FILENO) < 0, "Error: unable to dup", -1);
-            }
-
-            for (size_t iFd = 0; iFd < (cmds->cmdsCount - 1) * 2; iFd++)
-            {
-                RETURN_ERROR_OR_CONTINUE(close (fd[iFd]) < 0, "Error: unable to dup", -1);
-            }
-
-            runCmd(cmds, iCmd);
+            RETURN_ERROR_OR_CONTINUE(dup2 (fds[1], STDOUT_FILENO) == -1,
+                                     "Error: unable to close file", -1);
         }
 
+        printf ("%d\n", iCmd);
+
+        runCmd (cmds, iCmd);
     }
 
-    pid_t id = wait(&status);
-
-    free(fd);
+    int status = -1;
+	waitpid(pid, &status, 0);
 
     return 0;
 }

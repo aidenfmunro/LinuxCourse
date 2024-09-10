@@ -123,6 +123,12 @@ static char* parseBuffer (int fd, Text* inputText)
                              free (buffer);
                             );
 
+    char* hoursOfDebugSymbol = strchr(buffer, '\n');
+    if (hoursOfDebugSymbol != NULL)
+    {
+        *hoursOfDebugSymbol = '\0';
+    }
+
     return buffer;
 }
 
