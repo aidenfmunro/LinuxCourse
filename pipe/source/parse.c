@@ -38,14 +38,6 @@ int CreateText (int fd, Text* inputText)
     {
         char** argv = inputText->cmds[iCmd].argv;
         size_t argc = inputText->cmds[iCmd].argc;
-
-        printf("argc: %zu\n", argc);
-        printf("argv:\n");
-
-        for (size_t iArg = 0; iArg < argc; iArg++)
-        {
-            printf ("%s\n", argv[iArg]);
-        }
     }
 
     return 0;
@@ -124,6 +116,7 @@ static char* parseBuffer (int fd, Text* inputText)
                             );
 
     char* hoursOfDebugSymbol = strchr(buffer, '\n');
+
     if (hoursOfDebugSymbol != NULL)
     {
         *hoursOfDebugSymbol = '\0';
@@ -161,8 +154,6 @@ static size_t countTokens (char* buffer, char sepSymbol)
 static Command* getCommands (char* buffer, size_t cmdsCount)
 {
     assert (buffer);
-
-    printf ("%s\n", buffer);
 
     Command* cmds = (Command*) calloc (cmdsCount, sizeof(Command));
 
