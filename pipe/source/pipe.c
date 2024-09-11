@@ -21,14 +21,25 @@ static int runCmd (Text* cmds);
                                                                           \
         __VA_ARGS__                                                       \
                                                                           \
+        return retValue;                                                  \
+                                                                          \
     }                                                                     \
 }                                                                         \
+
+#ifdef DEBUG
+    #define ON_DEBUG(...) \
+        __VA_ARGS__
+#else
+    #define ON_DEBUG(...)
+#endif
+
+#define LOG(...) fprintf(stderr, __VA_ARGS__)
 
 int Pipeline (Text* cmds, int inputFd)
 {
     assert (cmds);
 
-    fprintf (stderr, "iCmd: %d\n", cmds->iCmd);
+    ON_DEBUG(fprintf (stderr, "iCmd: %d\n", cmds->iCmd));
 
     if (cmds->iCmd != cmds->cmdsCount - 1)
     {
@@ -42,11 +53,11 @@ int Pipeline (Text* cmds, int inputFd)
         pid_t writePid = 0;
               writePid = fork();
 
-        fprintf (stderr, "%d: %d\n", getpid(), writePid);
+        ON_DEBUG(LOG("%d: %d\n", getpid(), writePid));
 
         if (writePid == 0)
         {
-            fprintf (stderr, "hello, %d: %d\n", getpid(), writePid);
+            ON_DEBUG(LOG("hello, %d: %d\n", getpid(), writePid));
 
             dup2 (writeDescriptor, STDOUT_FILENO);
 
@@ -58,7 +69,7 @@ int Pipeline (Text* cmds, int inputFd)
             close (fds[0]);
             close (fds[1]);
 
-            fprintf (stderr, "bye bye, %d: %d\n", getpid(), writePid);
+            ON_DEBUG(LOG("bye bye, %d: %d\n", getpid(), writePid));
 
             runCmd (cmds);
         }
@@ -80,11 +91,11 @@ int Pipeline (Text* cmds, int inputFd)
 
                 int status = 0;
 
-                // waitpid (writePid, &status, 0);
-                fprintf (stderr, "%d status: %d\n", getpid(), WEXITSTATUS(status));
+                waitpid (writePid, &status, 0);
+                ON_DEBUG(LOG("%d status: %d\n", getpid(), WEXITSTATUS(status)));
 
-                // waitpid (readPid, &status, 0);
-                fprintf (stderr, "%d status: %d\n", getpid(), WEXITSTATUS(status));
+                waitpid (readPid, &status, 0);
+                ON_DEBUG(LOG("%d status: %d\n", getpid(), WEXITSTATUS(status)));
             }
         }
     }
@@ -94,12 +105,9 @@ int Pipeline (Text* cmds, int inputFd)
 
         if (pid == 0)
         {
-            fprintf (stderr, "fd: %d, %d\n", inputFd, getpid());
+            ON_DEBUG(LOG("fd: %d, %d\n", inputFd, getpid()));
 
-            // if (inputFd != STDIN_FILENO)
-            // {
-                dup2 (inputFd, STDIN_FILENO);
-            // }
+            dup2 (inputFd, STDIN_FILENO);
 
             close (inputFd);
 
@@ -110,7 +118,7 @@ int Pipeline (Text* cmds, int inputFd)
             int status = 0;
 
             waitpid(pid, &status, 0);
-            fprintf(stderr, "%d status: %d\n", getpid(), WEXITSTATUS(status));
+            ON_DEBUG(LOG("%d status: %d\n", getpid(), WEXITSTATUS(status)));
         }
     }
 
@@ -120,7 +128,7 @@ int Pipeline (Text* cmds, int inputFd)
 
 static int runCmd (Text* cmds)
 {
-    fprintf (stderr, "!!!\n");
+    ON_DEBUG(LOG("executing command [%zu]\n", cmds->iCmd));
 
     assert (cmds);
 
