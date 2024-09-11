@@ -39,19 +39,21 @@ int Pipeline (Text* cmds, int inputFd)
 {
     assert (cmds);
 
-    ON_DEBUG(fprintf (stderr, "iCmd: %d\n", cmds->iCmd));
+    ON_DEBUG(LOG("iCmd: %d\n", cmds->iCmd));
 
     if (cmds->iCmd != cmds->cmdsCount - 1)
     {
         int fds[2] = {};
 
-        pipe (fds);
+        RETURN_ERROR_OR_CONTINUE(pipe (fds) == -1,
+                                 "Error: unable to create pipe", -1);
 
         int readDescriptor  = fds[0];
         int writeDescriptor = fds[1];
 
         pid_t writePid = 0;
-              writePid = fork();
+        RETURN_ERROR_OR_CONTINUE((writePid = fork ()) == -1,
+                                 "Error: unable to fork", -1);
 
         ON_DEBUG(LOG("%d: %d\n", getpid(), writePid));
 
@@ -59,15 +61,19 @@ int Pipeline (Text* cmds, int inputFd)
         {
             ON_DEBUG(LOG("hello, %d: %d\n", getpid(), writePid));
 
-            dup2 (writeDescriptor, STDOUT_FILENO);
+            RETURN_ERROR_OR_CONTINUE(dup2 (writeDescriptor, STDOUT_FILENO) == -1,
+                                           "Error: unable to dup", -1);
 
             if (inputFd != STDIN_FILENO)
             {
-                dup2 (inputFd, STDIN_FILENO);
+                RETURN_ERROR_OR_CONTINUE(dup2 (inputFd, STDIN_FILENO) == -1,
+                                         "Error: unable to dup", -1);
             }
 
-            close (fds[0]);
-            close (fds[1]);
+            RETURN_ERROR_OR_CONTINUE(close (fds[0]) == -1,
+                                     "Error: unable to close read end", -1);
+            RETURN_ERROR_OR_CONTINUE(close (fds[1]) == -1,
+                                     "Error: unable to close write end", -1);
 
             ON_DEBUG(LOG("bye bye, %d: %d\n", getpid(), writePid));
 
@@ -75,19 +81,26 @@ int Pipeline (Text* cmds, int inputFd)
         }
         else
         {
-            pid_t readPid = fork ();
+            pid_t readPid = 0;
+            RETURN_ERROR_OR_CONTINUE((readPid = fork ()) == -1,
+                                     "Error: unable to fork", -1);
 
             if (readPid == 0)
             {
-                close (fds[1]);
+                RETURN_ERROR_OR_CONTINUE(close (fds[1]) == -1,
+                                         "Error: unable to close write end", -1);
+
+                // Proceed to next command
 
                 cmds->iCmd++;
                 Pipeline (cmds, readDescriptor);
             }
             else
             {
-                close (fds[0]);
-                close (fds[1]);
+                RETURN_ERROR_OR_CONTINUE(close (fds[0]) == -1,
+                                         "Error: unable to close read end", -1);
+                RETURN_ERROR_OR_CONTINUE(close (fds[1]) == -1,
+                                         "Error: unable to close write end", -1);
 
                 int status = 0;
 
@@ -101,15 +114,19 @@ int Pipeline (Text* cmds, int inputFd)
     }
     else
     {
-        pid_t pid = fork ();
+        pid_t pid = 0;
+        RETURN_ERROR_OR_CONTINUE((pid = fork ()) == -1,
+                                 "Error: unable to fork", -1);
 
         if (pid == 0)
         {
             ON_DEBUG(LOG("fd: %d, %d\n", inputFd, getpid()));
 
-            dup2 (inputFd, STDIN_FILENO);
+            RETURN_ERROR_OR_CONTINUE(dup2 (inputFd, STDIN_FILENO) == -1,
+                                     "Error: unable to dup", -1);
 
-            close (inputFd);
+            RETURN_ERROR_OR_CONTINUE(close (inputFd) == -1,
+                                     "Error: unable to close fd", -1);
 
             runCmd (cmds);
         }
@@ -142,7 +159,8 @@ static int runCmd (Text* cmds)
 
     fflush (stdout);
 
-    int err = execvp (argv[0], argv);
+    RETURN_ERROR_OR_CONTINUE(execvp (argv[0], argv) == -1,
+                                     "Error: unable to exec", -1);
 
     return 0;
 }
