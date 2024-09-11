@@ -6,11 +6,12 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "pipe.h"
 #include "parse.h"
 
-static int runCmd (Text* cmds, size_t curCmdIndex);
+static int runCmd (Text* cmds);
 
 #define RETURN_ERROR_OR_CONTINUE(expression, errorMessage, retValue, ...) \
 {                                                                         \
@@ -20,122 +21,120 @@ static int runCmd (Text* cmds, size_t curCmdIndex);
                                                                           \
         __VA_ARGS__                                                       \
                                                                           \
-        return retValue;                                                  \
     }                                                                     \
 }                                                                         \
 
-int Pipeline (Text* cmds, int inputFd, size_t iCmd)
+int Pipeline (Text* cmds, int inputFd)
 {
-    printf("hui");
-
     assert (cmds);
 
-    printf ("iCmd: %d\n", iCmd);
+    fprintf (stderr, "iCmd: %d\n", cmds->iCmd);
 
-    if (iCmd != cmds->cmdsCount - 1)
+    if (cmds->iCmd != cmds->cmdsCount - 1)
     {
         int fds[2] = {};
 
-        RETURN_ERROR_OR_CONTINUE(pipe (fds) == -1,
-                                 "Error: unable to create pipe", -1);
+        pipe (fds);
 
         int readDescriptor  = fds[0];
         int writeDescriptor = fds[1];
 
         pid_t writePid = 0;
+              writePid = fork();
 
-        RETURN_ERROR_OR_CONTINUE((writePid = fork ()) == -1,
-                                 "Error: unable to fork", -1);
+        fprintf (stderr, "%d: %d\n", getpid(), writePid);
 
         if (writePid == 0)
         {
-            RETURN_ERROR_OR_CONTINUE(dup2(writeDescriptor, STDOUT_FILENO) == -1,
-                                     "Error: unable to dup", -1);
+            fprintf (stderr, "hello, %d: %d\n", getpid(), writePid);
+
+            dup2 (writeDescriptor, STDOUT_FILENO);
 
             if (inputFd != STDIN_FILENO)
             {
-                RETURN_ERROR_OR_CONTINUE(dup2(inputFd, STDIN_FILENO) == -1,
-                                         "Error: unable to dup", -1);
+                dup2 (inputFd, STDIN_FILENO);
             }
 
-            RETURN_ERROR_OR_CONTINUE(close (fds[0]) == -1,
-                                     "Error: unable to close fd", -1);
-            RETURN_ERROR_OR_CONTINUE(close (fds[1]) == -1,
-                                     "Error: unable to close fd", -1);
+            close (fds[0]);
+            close (fds[1]);
 
-            runCmd (cmds, iCmd);
+            fprintf (stderr, "bye bye, %d: %d\n", getpid(), writePid);
+
+            runCmd (cmds);
         }
         else
         {
-            pid_t readPid = 0;
-            RETURN_ERROR_OR_CONTINUE((writePid = fork ()) == -1,
-                                     "Error: unable to fork", -1);
+            pid_t readPid = fork ();
 
             if (readPid == 0)
             {
-                RETURN_ERROR_OR_CONTINUE(close (fds[1]) == -1,
-                                         "Error: unable to close fd", -1);
+                close (fds[1]);
 
-                Pipeline (cmds, readDescriptor, iCmd + 1);
+                cmds->iCmd++;
+                Pipeline (cmds, readDescriptor);
             }
             else
             {
-                RETURN_ERROR_OR_CONTINUE(close (fds[0]) == -1,
-                                         "Error: unable to close fd", -1);
-                RETURN_ERROR_OR_CONTINUE(close (fds[1]) == -1,
-                                         "Error: unable to close fd", -1);
+                close (fds[0]);
+                close (fds[1]);
 
                 int status = 0;
 
-                waitpid (writePid, &status, 0);
-                            printf("%d status: %d\n", iCmd, WEXITSTATUS(status));
+                // waitpid (writePid, &status, 0);
+                fprintf (stderr, "%d status: %d\n", getpid(), WEXITSTATUS(status));
 
-                waitpid (readPid,  &status, 0);
-                            printf("%d status: %d\n", iCmd, WEXITSTATUS(status));
-
+                // waitpid (readPid, &status, 0);
+                fprintf (stderr, "%d status: %d\n", getpid(), WEXITSTATUS(status));
             }
         }
     }
     else
     {
-        pid_t pid = 0;
-        RETURN_ERROR_OR_CONTINUE((pid = fork ()) == -1,
-                                 "Error: unable to fork", -1);
+        pid_t pid = fork ();
 
         if (pid == 0)
         {
-            RETURN_ERROR_OR_CONTINUE(dup2(inputFd, STDIN_FILENO),
-                                     "Error: unable to dup", -1);
-            RETURN_ERROR_OR_CONTINUE(close(inputFd) == -1,
-                                     "Error: unable to close fd", -1)
+            fprintf (stderr, "fd: %d, %d\n", inputFd, getpid());
 
-            runCmd (cmds, iCmd);
+            if (inputFd != STDIN_FILENO)
+            {
+                dup2 (inputFd, STDIN_FILENO);
+            }
+
+            close (inputFd);
+
+            runCmd (cmds);
         }
+        else
+        {
+            int status = 0;
 
-        int status = 0;
-        waitpid (pid, &status, 0);
-        printf("%d status: %d\n", iCmd, WEXITSTATUS(status));
-
+            waitpid(pid, &status, 0);
+            fprintf(stderr, "%d status: %d\n", getpid(), WEXITSTATUS(status));
+        }
     }
 
     return 0;
 }
 
-static int runCmd (Text* cmds, size_t curCmdIndex)
+
+static int runCmd (Text* cmds)
 {
+    fprintf (stderr, "!!!\n");
+
     assert (cmds);
 
-    char** argv = cmds->cmds[curCmdIndex].argv;
-    size_t argc = cmds->cmds[curCmdIndex].argc;
+    char** argv = cmds->cmds[cmds->iCmd].argv;
+    size_t argc = cmds->cmds[cmds->iCmd].argc;
 
     for (size_t iArg = 0; iArg < argc; iArg++)
     {
         printf ("%s ", argv[iArg]);
     }
 
-    int err = execvp (argv[0], argv);
+    // fflush (stdout);
 
-    RETURN_ERROR_OR_CONTINUE(err == -1, "Error, couldn't exec", -1);
+    int err = execvp (argv[0], argv);
 
     return 0;
 }

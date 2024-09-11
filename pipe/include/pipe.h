@@ -3,6 +3,6 @@
 
 #include "parse.h"
 
-int Pipeline (Text* cmds, int inputFd, size_t iCmd);
+int Pipeline (Text* cmds, int inputFd);
 
 #endif // PIPE_H

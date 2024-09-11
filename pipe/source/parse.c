@@ -40,6 +40,8 @@ int CreateText (int fd, Text* inputText)
         size_t argc = inputText->cmds[iCmd].argc;
     }
 
+    inputText->iCmd = 0;
+
     return 0;
 }
 

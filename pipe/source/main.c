@@ -15,7 +15,7 @@ int main (int argc, char* argv[])
 
     CreateText (sourceDescriptor, &cmds);
 
-    Pipeline (&cmds, STDIN_FILENO, 0);
+    Pipeline (&cmds, STDIN_FILENO);
 
     DestroyText (&cmds);
 }

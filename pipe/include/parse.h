@@ -16,6 +16,7 @@ typedef struct
 
     Command* cmds;
     size_t          cmdsCount;
+    size_t          iCmd;
 } Text;
 
 int CreateText  (int fd, Text* inputText);
