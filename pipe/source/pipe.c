@@ -22,7 +22,6 @@ static int runCmd (Text* cmds);
         __VA_ARGS__                                                       \
                                                                           \
         return retValue;                                                  \
-                                                                          \
     }                                                                     \
 }                                                                         \
 
@@ -141,7 +140,6 @@ int Pipeline (Text* cmds, int inputFd)
 
     return 0;
 }
-
 
 static int runCmd (Text* cmds)
 {
