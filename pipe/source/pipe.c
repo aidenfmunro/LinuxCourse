@@ -96,10 +96,10 @@ int Pipeline (Text* cmds, int inputFd)
         {
             fprintf (stderr, "fd: %d, %d\n", inputFd, getpid());
 
-            if (inputFd != STDIN_FILENO)
-            {
+            // if (inputFd != STDIN_FILENO)
+            // {
                 dup2 (inputFd, STDIN_FILENO);
-            }
+            // }
 
             close (inputFd);
 
@@ -132,7 +132,7 @@ static int runCmd (Text* cmds)
         printf ("%s ", argv[iArg]);
     }
 
-    // fflush (stdout);
+    fflush (stdout);
 
     int err = execvp (argv[0], argv);
 
