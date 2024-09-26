@@ -8,6 +8,11 @@ The Pipeline Conveyor Program is designed to simulate a conveyor belt system for
 
 The commands that are used to test the program are stored [here](examples/commands.txt).
 
+Two make sure that the two files are identical run:
+
+```
+bash cmp2files.sh examples/send.bd examples/receive.bd
+```
 
 ## Build
 
