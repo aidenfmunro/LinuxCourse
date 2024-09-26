@@ -1,5 +1,6 @@
 # Duplex pipe
 
+The Duplex pipe is a upgraded pipe that allows bidirectional transfering of big data between processes.
 
 ## Examples
 
