@@ -29,14 +29,3 @@ Run:
 ```
 ./main examples/commands.txt
 ```
-
-## System specs
-
-**Compiler**: Debian clang version 16.0.6
-
-**OS**: Kali GNU/Linux Rolling x86_64
-
-**CPU**: AMD Ryzen 7 5800HS with Radeon Graphics, 3201 Mhz, 8 Core(s), 16 Logical Processor(s)
-
-**RAM**: 16.0 GB
-
