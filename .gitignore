@@ -1,6 +1,8 @@
 # JSON files
 .vscode
 
+build
+
 # Object files
 *.o
 *.s
@@ -11,5 +13,5 @@
 *.out
 
 # Big files
-*bd
+*.bd
 
