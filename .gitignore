@@ -4,3 +4,6 @@
 # Executables
 *.exe
 *.out
+
+# Big files
+*bd

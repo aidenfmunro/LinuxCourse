@@ -3,20 +3,24 @@
 
 #include <stddef.h>
 
+typedef struct _Pipe    Pipe;
+typedef struct _OpTable OpTable;
+
 typedef size_t (*receive_t)(Pipe *self);
 typedef size_t (*send_t)   (Pipe *self);
 
-typedef struct
+typedef struct _OpTable
 {
     receive_t receive;
     send_t    send;
 
 } OpTable;
 
-typedef struct
+typedef struct _Pipe
 {
     char*  data;
-    size_t dataLength;
+    size_t dataSize;
+    size_t dataCapacity;
 
     int fdForw[2];
     int fdBack[2];
@@ -25,4 +29,8 @@ typedef struct
 
 } Pipe;
 
-#endif DUPLEX_PIPE_H
+Pipe* CreateDuplexPipe  (OpTable ops);
+
+int   DestroyDuplexPipe (Pipe* dpipe);
+
+#endif // DUPLEX_PIPE_H
