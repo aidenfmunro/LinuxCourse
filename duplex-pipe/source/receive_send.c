@@ -13,8 +13,9 @@
 const char* parentSendFilename   = "examples/4gbParentSend.bd";
 const char* childReceiveFilename = "examples/4gbChildReceive.bd";
 
-const char* childSendFilename     = "";
-const char* parentReceiveFilename = "";
+const char* childSendFilename     = "examples/4gbChildSend.bd";
+const char* parentReceiveFilename = "examples/4gbParentReceive.bd";
+
 //
 
 #define RETURN_ERROR_OR_CONTINUE(expression, errorMessage, retValue, ...) \
@@ -165,7 +166,7 @@ size_t childSend (Pipe* dpipe)
 
     RETURN_ERROR_OR_CONTINUE(close (dpipe->fdBack[1]) == -1, "Error: unable to close write end for child side receive", -1);
 
-    ON_DEBUG(LOG("Parent finished sending data... %zu bytes sent...\n", totalSize));
+    ON_DEBUG(LOG("Child finished sending data... %zu bytes sent...\n", totalSize));
 
     closeFile (&file);
 

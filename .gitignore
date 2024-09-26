@@ -1,9 +1,15 @@
 # JSON files
 .vscode
 
+# Object files
+*.o
+*.s
+*.i
+
 # Executables
 *.exe
 *.out
 
 # Big files
 *bd
+

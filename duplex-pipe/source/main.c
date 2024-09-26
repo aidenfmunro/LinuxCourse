@@ -23,10 +23,18 @@ int main ()
     else if (pid == 0)
     {
         dpipe->ops.receive(dpipe);
+
+        dpipe->ops.send = childSend;
+
+        dpipe->ops.send(dpipe);
     }
     else
     {
         dpipe->ops.send(dpipe);
+
+        dpipe->ops.receive = parentReceive;
+
+        dpipe->ops.receive(dpipe);
     }
 
     DestroyDuplexPipe(dpipe);

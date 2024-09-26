@@ -8,8 +8,8 @@ size_t childReceive  (Pipe* dpipe);
 
 size_t parentReceive (Pipe* dpipe);
 
-size_t parentReceive (Pipe* dpipe);
-
 size_t parentSend    (Pipe* dpipe);
+
+size_t childSend     (Pipe* dpipe);
 
 #endif // RECEIVE_SEND_H

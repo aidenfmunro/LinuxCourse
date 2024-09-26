@@ -8,6 +8,11 @@ The Duplex pipe is a upgraded pipe that allows bidirectional transfering of big 
 
 The files that are used to test the program are stored [here](source/receive_send.c) are global constans. Please use the `.bd` file extension for your big data files.
 
+To create a file of size 4gb:
+```
+time dd if=/dev/urandom of=path/to/file bs=1048576 count=4096
+```
+
 Two make sure that the two files are identical run:
 
 ```
